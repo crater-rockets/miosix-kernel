@@ -209,7 +209,7 @@ static const STM32SerialHW ports[maxPorts] = {
         DMA1_Stream0, DMA1_Stream0_IRQn, STM32SerialDMAHW::Stream0, 5,
         DMA1_Stream6, DMA1_Stream6_IRQn, STM32SerialDMAHW::Stream6, 5 } },
 };
-#elif defined(STM32F765xx) || defined(STM32F767xx) || defined(STM32F769xx)
+#elif defined(STM32F765xx) || defined(STM32F767xx) || defined(STM32F769xx) || defined(STM32F756xx)
 static const STM32SerialAltFunc::Span af7Spans[]={{0,0,7}};
 static const STM32SerialAltFunc::Span af8Spans[]={{0,0,8}};
 static const STM32SerialAltFunc::Span uart1AfSpans[]={{1,14,7},{0,0,4}};
