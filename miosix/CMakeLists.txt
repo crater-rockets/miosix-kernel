@@ -77,35 +77,6 @@ set(MIOSIX_KERNEL_SRC
     ${MIOSIX_KPATH}/util/lcd44780.cpp
 )
 
-# Include the architecture options
-include(${MIOSIX_KPATH}/arch/CMakeLists.txt)
-
-# Verify that all the required variables have been defined, otherwise abort
-set(REQUIRED_VARIABLES
-    MIOSIX_OPT_BOARD
-    MIOSIX_ARCH_INC
-    MIOSIX_BOARD_INC
-    MIOSIX_BOARD_SETTINGS_INC
-    MIOSIX_LINKER_SCRIPT
-    MIOSIX_A_FLAGS
-    MIOSIX_C_FLAGS
-    MIOSIX_CXX_FLAGS
-    MIOSIX_L_FLAGS
-    MIOSIX_ARCH_SRC
-)
-foreach(VARIABLE ${REQUIRED_VARIABLES})
-    if(NOT DEFINED ${VARIABLE})
-        message(FATAL_ERROR "arch/CMakeLists.txt must define ${VARIABLE}")
-    endif()
-endforeach()
-
-# The user can set a custom path for miosix_settings.h
-set(MIOSIX_SETTINGS_PATH ${MIOSIX_KPATH}/default CACHE PATH "Include directory for miosix_settings.h")
-mark_as_advanced(MIOSIX_SETTINGS_PATH)
-if(NOT MIOSIX_SETTINGS_PATH STREQUAL ${MIOSIX_KPATH}/default)
-    message(NOTICE "You have set a custom path for miosix_settings.h")
-endif()
-
 # Define the miosix library with kernel and architecture sources
 add_library(miosix STATIC ${MIOSIX_KERNEL_SRC} ${MIOSIX_ARCH_SRC})
 
@@ -113,10 +84,15 @@ target_include_directories(miosix PUBLIC
     ${MIOSIX_KPATH}
     ${MIOSIX_KPATH}/arch/common
     ${MIOSIX_ARCH_INC}
-    ${MIOSIX_BOARD_INC}
-    ${MIOSIX_BOARD_SETTINGS_INC}
-    ${MIOSIX_SETTINGS_PATH}
 )
+
+set(MIOSIX_C_CXX_FLAGS_BASE -ffunction-sections -D_DEFAULT_SOURCE=1)
+
+set(MIOSIX_A_FLAGS ${MIOSIX_ARCH_AFLAGS})
+set(MIOSIX_C_FLAGS ${MIOSIX_C_CXX_FLAGS_BASE} ${MIOSIX_ARCH_CFLAGS})
+set(MIOSIX_CXX_FLAGS ${MIOSIX_C_CXX_FLAGS_BASE} ${MIOSIX_ARCH_CXXFLAGS})
+set(MIOSIX_L_FLAGS ${MIOSIX_ARCH_LFLAGS} -Wl,--gc-sections -Wl,-T${MIOSIX_LINKER_SCRIPT} -nostdlib)
+
 
 target_compile_options(miosix PUBLIC
     $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_A_FLAGS}>
@@ -124,14 +100,12 @@ target_compile_options(miosix PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_CXX_FLAGS}>
 )
 
-# Configure program command as a propery of the miosix library
-set_property(TARGET miosix PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
 
 # Add COMPILING_MIOSIX define for private headers
 target_compile_definitions(miosix PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_MIOSIX>)
 
 # Configure linker file and options needed to link agains this library
-set_property(TARGET miosix PROPERTY LINK_DEPENDS ${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT})
+set_property(TARGET miosix PROPERTY LINK_DEPENDS ${MIOSIX_LINKER_SCRIPT})
 target_link_options(miosix INTERFACE ${MIOSIX_L_FLAGS})
 
 # Run the kernel_global_objects.pl script on all kernel objects
@@ -141,12 +115,3 @@ add_custom_command(
     VERBATIM
     COMMAND_EXPAND_LISTS
 )
-
-# Optionally print the board list
-option(MIOSIX_PRINT_BOARD_LIST "Prints a list of the available boards" OFF)
-if(MIOSIX_PRINT_BOARD_LIST)
-    message(STATUS "Available boards:")
-    foreach(MIOSIX_OPT_BOARD ${MIOSIX_BOARDS})
-        message(STATUS "\t${MIOSIX_OPT_BOARD}")
-    endforeach()
-endif()
